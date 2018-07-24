@@ -1,13 +1,5 @@
 'use strict';
 
-<<<<<<< HEAD
-var strip = require("./strip.js");
-var rainbow = require("./ws2812controller/animations/rainbow.js");
-
-var args = {};
-rainbow.GoRainbow(args, strip);
-=======
-
 var strip = require("./ws2812controller/strip.js");
 var xmas = require("./ws2812controller/animations/xmas.js");
 var fade = require("./ws2812controller/animations/fade.js");
@@ -44,4 +36,3 @@ if(process.argv[2] == 3){
 process.on('SIGINT', function() {
   control.Stop({}, strip);
 });
->>>>>>> e5ad7d12d7951be3d4432892f664ea090f0e65b7
