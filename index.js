@@ -14,6 +14,11 @@ const ConnectionString = require('azure-iot-device').ConnectionString;
 const Message = require('azure-iot-device').Message;
 const Protocol = require('azure-iot-device-mqtt').Mqtt;
 
+// This is for NeoPixel
+var strip = require("./ws2812controller/strip.js");
+var rainbow = require("./ws2812controller/animations/rainbow.js");
+var control = require("./ws2812controller/animations/control.js");
+
 const bi = require('az-iot-bi');
 
 const MessageProcessor = require('./messageProcessor.js');
@@ -40,40 +45,47 @@ var OneTimeFlag = true;
 
 // button is attached to pin 17, led to 14
 var GPIO = require('onoff').Gpio,
-	ClientLed = new GPIO(14, 'out'),
-  DataSendLed = new GPIO(15,'out'),
-	StartSendButton = new GPIO(17, 'in', 'falling'),
-  PressureAlarmButton = new GPIO(18, 'in', 'falling'),
-  FlowAlarmButton = new GPIO(22, 'in', 'falling');
+ClientLed = new GPIO(14, 'out'),
+DataSendLed = new GPIO(15,'out'),
+StartSendButton = new GPIO(17, 'in', 'falling'),
+PressureAlarmButton = new GPIO(18, 'in', 'falling'),
+FlowAlarmButton = new GPIO(22, 'in', 'falling');
 var JobidRunningNumber = 0;
 
 
 // define the callback function
 function LightforFlag() {
-   if(FlagForDataSend){
-		 ClientLed.writeSync(0);
-	 }else{
-		 ClientLed.writeSync(1);
-	 }
+  if(FlagForDataSend){
+    ClientLed.writeSync(0);
+  }else{
+    ClientLed.writeSync(1);
+  }
 }
 
 // define the callback function
 function ReadyToSendData() {
 
 
- if (ClientLed.readSync() === 0) { //check the pin state, if the state is 0 (or off)
-	 ClientLed.writeSync(1); //set pin state to 1 (turn LED on)
- } else {
-	 ClientLed.writeSync(0); //set pin state to 0 (turn LED off)
- }
+  if (ClientLed.readSync() === 0) { //check the pin state, if the state is 0 (or off)
+    ClientLed.writeSync(1); //set pin state to 1 (turn LED on)
+  } else {
+    ClientLed.writeSync(0); //set pin state to 0 (turn LED off)
+  }
 
-	setTimeout(ReadyToSendData, 500);
+  setTimeout(ReadyToSendData, 500);
 
 
 }
 
-
-
+// NeoPixel blink
+function blinkNeoPixel() {
+  rainbow.GoRainbow({}, strip);
+}
+blinkNeoPixel();
+// To stop the strip when program stops
+process.on('SIGINT', function() {
+  control.Stop({}, strip);
+});
 
 
 function blinkLED() {
@@ -89,38 +101,38 @@ function blinkLED() {
 // define the callback function
 function PressureAlert() {
 
-	if(PressureAlertFlag){
-		PressureAlertFlag = false;
-	} else{
-		PressureAlertFlag = true;
-	}
+  if(PressureAlertFlag){
+    PressureAlertFlag = false;
+  } else{
+    PressureAlertFlag = true;
+  }
 
 }
 
 // define the callback function
 function FlowAlert() {
 
-	if(FlowAlertFlag){
-		FlowAlertFlag = false;
-	} else{
-		FlowAlertFlag = true;
-	}
+  if(FlowAlertFlag){
+    FlowAlertFlag = false;
+  } else{
+    FlowAlertFlag = true;
+  }
 
 
 }
 
 // define the callback function
 function ToggleFlagForDataSend() {
-   if(FlagForDataSend){
-		 FlagForDataSend = false;
-	 } else{
-		 FlagForDataSend = true;
-		 UpdateJobID();
-	 }
+  if(FlagForDataSend){
+    FlagForDataSend = false;
+  } else{
+    FlagForDataSend = true;
+    UpdateJobID();
+  }
 
-	 console.log('Sending message to Trigger... ');
-	 //Change flag and trigger here again.
-	 sendMessage();//This is the key This one call back when you press***---***
+  console.log('Sending message to Trigger... ');
+  //Change flag and trigger here again.
+  sendMessage();//This is the key This one call back when you press***---***
 
 
 
@@ -128,12 +140,12 @@ function ToggleFlagForDataSend() {
 
 // define the callback function
 function UpdateJobID() {
-	var dt1 = dateTime.create();
-	var CurrentDate = dt1.format('Ymd'); //Current Timestamp--
-	JobidRunningNumber++;
-	JobIDString = CurrentDate + "-" + JobidRunningNumber
+  var dt1 = dateTime.create();
+  var CurrentDate = dt1.format('Ymd'); //Current Timestamp--
+  JobidRunningNumber++;
+  JobIDString = CurrentDate + "-" + JobidRunningNumber
   //console.log('JobidRunningNumber: ' + JobidRunningNumber);
-	//console.log('JobIDString: ' + JobIDString);
+  //console.log('JobIDString: ' + JobIDString);
 
 }
 
@@ -151,7 +163,7 @@ function sendMessage() {
 
 
 
- //Send message Here
+  //Send message Here
   messageId++;
 
   messageProcessor.getMessage(messageId,JobIDString,PressureAlertFlag,FlowAlertFlag,(content, PressureAlert) => {
@@ -170,22 +182,22 @@ function sendMessage() {
       //LightforFlag();
 
 
-			if(FlagForDataSend){
-				//Send message trigger repeactively here
-				setTimeout(sendMessage, config.interval);
-			}else{
+      if(FlagForDataSend){
+        //Send message trigger repeactively here
+        setTimeout(sendMessage, config.interval);
+      }else{
 
 
-      //To show client is ready
-      //Call only once , else call loop in the loop and ugly
-			if(OneTimeFlag){
-				ReadyToSendData();
-			}
-			OneTimeFlag= false;
+        //To show client is ready
+        //Call only once , else call loop in the loop and ugly
+        if(OneTimeFlag){
+          ReadyToSendData();
+        }
+        OneTimeFlag= false;
 
 
 
-			}
+      }
 
 
 
@@ -316,9 +328,9 @@ function initClient(connectionStringParam, credentialPath) {
 
 
 
-      console.log('Sending message from Client(One time only)... ');
-			//Send Message
-			sendMessage();
+    console.log('Sending message from Client(One time only)... ');
+    //Send Message
+    sendMessage();
 
 
   });
